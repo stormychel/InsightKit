@@ -17,6 +17,8 @@ import Cocoa
 
 // MARK: - Core API
 
+#if os(macOS)
+@available(macOS 11.0, *)
 public final class InsightCenter {
     
     // MARK: Singleton
@@ -235,6 +237,7 @@ public final class InsightCenter {
         return f
     }()
 }
+#endif
 
 // MARK: - Severity Levels
 
