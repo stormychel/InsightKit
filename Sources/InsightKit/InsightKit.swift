@@ -17,19 +17,14 @@ import Cocoa
 
 // MARK: - Core API
 
+#if os(macOS)
+@available(macOS 11.0, *)
 public final class InsightCenter {
     
     // MARK: Singleton
     
     public static let shared = InsightCenter()
     private init() { Task { await prepareStorage() } }
-    
-    // MARK: Internals
-    
-    private let queue = DispatchQueue(label: "com.insightkit.queue", qos: .utility)
-    private let log = Logger(subsystem: "com.insightkit", category: "core")
-    private var fileHandle: FileHandle?
-    private var currentFileURL: URL?
     
     // MARK: Public Logging Interface
     
@@ -39,6 +34,20 @@ public final class InsightCenter {
     public func warning(_ text: String)  { write(level: .warning, text) }
     public func error(_ text: String)    { write(level: .error, text) }
     public func critical(_ text: String) { write(level: .critical, text) }
+    
+    // MARK: Public Properties
+    
+    /// Returns the directory where InsightKit stores its log files.
+    public var logDirectory: URL {
+        Self.defaultDirectory()
+    }
+    
+    // MARK: Internals
+    
+    private let queue = DispatchQueue(label: "com.insightkit.queue", qos: .utility)
+    private let log = Logger(subsystem: "com.insightkit", category: "core")
+    private var fileHandle: FileHandle?
+    private var currentFileURL: URL?
     
     // MARK: Log Writer
     
@@ -235,6 +244,7 @@ public final class InsightCenter {
         return f
     }()
 }
+#endif
 
 // MARK: - Severity Levels
 

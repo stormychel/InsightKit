@@ -7,6 +7,7 @@ It provides a lightweight, thread-safe way to log messages to disk and console, 
 
 ⸻
 
+
 ✨ Features
 	•	Structured file + console logging
 	•	Thread-safe write queue
@@ -53,9 +54,10 @@ Swift Package Manager
 
 Add InsightKit to your project in Xcode:
 
-https://github.com/yourusername/InsightKit
+1. File → Add Packages…
+2. Enter the repository URL: https://github.com/yourusername/InsightKit.git
 
-Or include it in Package.swift:
+Or include it in your Package.swift:
 
 .package(url: "https://github.com/yourusername/InsightKit.git", from: "1.0.0")
 
