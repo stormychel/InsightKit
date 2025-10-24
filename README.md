@@ -1,6 +1,6 @@
-🪶 InsightKit
+# 🪶 InsightKit
 
-Capture • Understand • Report
+## Capture • Understand • Report
 
 InsightKit is a modern Swift framework for unified logging and diagnostics.
 It provides a lightweight, thread-safe way to log messages to disk and console, automatically rotate large files, and archive diagnostic bundles for review or support.
