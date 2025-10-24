@@ -21,6 +21,7 @@ It provides a lightweight, thread-safe way to log messages to disk and console, 
 
 🧩 Example
 
+```swift
 import InsightKit
 
 let log = InsightCenter.shared
@@ -34,7 +35,7 @@ Create a ZIP bundle for sharing or analysis
 if let archiveURL = log.makeArchive() {
     print("Log archive created at: \(archiveURL.path)")
 }
-
+```
 
 ⸻
 
