@@ -24,7 +24,13 @@ public final class InsightCenter {
     // MARK: Singleton
     
     public static let shared = InsightCenter()
-    private init() { Task { await prepareStorage() } }
+
+    private let appName: String
+
+    private init() {
+        self.appName = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "InsightKit"
+        Task { await prepareStorage() }
+    }
     
     // MARK: Public Logging Interface
     
@@ -39,7 +45,7 @@ public final class InsightCenter {
     
     /// Returns the directory where InsightKit stores its log files.
     public var logDirectory: URL {
-        Self.defaultDirectory()
+        Self.defaultDirectory(appName: appName)
     }
     
     // MARK: Internals
@@ -81,17 +87,20 @@ public final class InsightCenter {
     
     private func prepareStorage() async {
         let fm = FileManager.default
-        let folder = Self.defaultDirectory()
-        let fileURL = folder.appendingPathComponent("insight.log")
+        let folder = Self.defaultDirectory(appName: appName)
+        let fileURL = folder.appendingPathComponent("InsightKit.log")
+        
         currentFileURL = fileURL
         
         do {
             if !fm.fileExists(atPath: folder.path) {
                 try fm.createDirectory(at: folder, withIntermediateDirectories: true)
             }
+            
             if !fm.fileExists(atPath: fileURL.path) {
                 fm.createFile(atPath: fileURL.path, contents: nil)
             }
+            
             fileHandle = try FileHandle(forWritingTo: fileURL)
             fileHandle?.seekToEndOfFile()
         } catch {
@@ -107,23 +116,26 @@ public final class InsightCenter {
     }
     
     // MARK: Rotation
-    
+
     private func rotateIfOversized(limit: Int64 = 4_000_000) {
         guard let url = currentFileURL else { return }
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: url.path) else { return }
         do {
-            let attr = try FileManager.default.attributesOfItem(atPath: url.path)
+            let attr = try fm.attributesOfItem(atPath: url.path)
             if let size = attr[.size] as? Int64, size > limit { rotateLog() }
         } catch {
             log.error("InsightCenter.rotateIfOversized() failed: \(error.localizedDescription)")
         }
     }
-    
+
     private func rotateLog() {
         queue.async(flags: .barrier) {
             guard let url = self.currentFileURL else { return }
             let fm = FileManager.default
             let backup = url.deletingLastPathComponent()
-                .appendingPathComponent("insight_\(Self.rotationStamp()).log")
+                .appendingPathComponent("InsightKit_\(Self.rotationStamp()).log")
+    
             do {
                 if fm.fileExists(atPath: backup.path) { try fm.removeItem(at: backup) }
                 try fm.moveItem(at: url, to: backup)
@@ -209,14 +221,14 @@ public final class InsightCenter {
     #endif
     
     // MARK: Utilities
-    
-    private static func defaultDirectory() -> URL {
+
+    private static func defaultDirectory(appName: String) -> URL {
         #if os(macOS)
         FileManager.default
             .homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Logs/InsightKit")
+            .appendingPathComponent("Library/Logs/\(appName)")
         #else
-        FileManager.default.temporaryDirectory.appendingPathComponent("InsightKit")
+        FileManager.default.temporaryDirectory.appendingPathComponent(appName)
         #endif
     }
     
