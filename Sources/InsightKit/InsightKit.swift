@@ -41,6 +41,11 @@ public final class InsightCenter {
     public func error(_ text: String)    { write(level: .error, text) }
     public func critical(_ text: String) { write(level: .critical, text) }
     
+    //
+    public func debug(_ text: String) { write(level: .debug, text) }
+    //
+    
+    
     // MARK: Public Properties
     
     /// Returns the directory where InsightKit stores its log files.
@@ -71,6 +76,7 @@ public final class InsightCenter {
             case .warning:  self.log.warning("\(line, privacy: .public)")
             case .error:    self.log.error("\(line, privacy: .public)")
             case .critical: self.log.critical("\(line, privacy: .public)")
+            case .debug:   self.log.debug("\(line, privacy: .public)")
             }
             
             if let data = line.data(using: .utf8), let fh = self.fileHandle {
@@ -267,4 +273,5 @@ public enum InsightLevel: String {
     case warning = "WARN"
     case error = "ERROR"
     case critical = "CRITICAL"
+    case debug = "DEBUG"
 }
