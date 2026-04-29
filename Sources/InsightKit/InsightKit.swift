@@ -29,7 +29,7 @@ public final class InsightCenter {
 
     private init() {
         self.appName = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "InsightKit"
-        Task { await prepareStorage() }
+        queue.async(flags: .barrier) { [weak self] in self?.prepareStorage() }
     }
     
     // MARK: Public Logging Interface
@@ -91,25 +91,29 @@ public final class InsightCenter {
     
     // MARK: Storage Setup
     
-    private func prepareStorage() async {
+    /// Must be called on `queue`. All reads/writes of `currentFileURL` and `fileHandle`
+    /// are confined to that serial queue; running this off-queue (e.g. from a Task)
+    /// caused a use-after-free when concurrent `write()` calls observed half-mutated state.
+    private func prepareStorage() {
         let fm = FileManager.default
         let folder = Self.defaultDirectory(appName: appName)
         let fileURL = folder.appendingPathComponent("InsightKit.log")
-        
-        currentFileURL = fileURL
-        
+
         do {
             if !fm.fileExists(atPath: folder.path) {
                 try fm.createDirectory(at: folder, withIntermediateDirectories: true)
             }
-            
+
             if !fm.fileExists(atPath: fileURL.path) {
                 fm.createFile(atPath: fileURL.path, contents: nil)
             }
-            
+
+            try? fileHandle?.close()
             fileHandle = try FileHandle(forWritingTo: fileURL)
             fileHandle?.seekToEndOfFile()
+            currentFileURL = fileURL
         } catch {
+            currentFileURL = fileURL
             log.error("InsightCenter.prepareStorage() failed: \(error.localizedDescription)")
         }
     }
@@ -135,20 +139,22 @@ public final class InsightCenter {
         }
     }
 
+    /// Called from `rotateIfOversized` which already runs on `queue`; do not redispatch.
     private func rotateLog() {
-        queue.async(flags: .barrier) {
-            guard let url = self.currentFileURL else { return }
-            let fm = FileManager.default
-            let backup = url.deletingLastPathComponent()
-                .appendingPathComponent("InsightKit_\(Self.rotationStamp()).log")
-    
-            do {
-                if fm.fileExists(atPath: backup.path) { try fm.removeItem(at: backup) }
-                try fm.moveItem(at: url, to: backup)
-                Task { await self.prepareStorage() }
-            } catch {
-                self.log.error("InsightCenter.rotateLog() failed: \(error.localizedDescription)")
-            }
+        guard let url = self.currentFileURL else { return }
+        let fm = FileManager.default
+        let backup = url.deletingLastPathComponent()
+            .appendingPathComponent("InsightKit_\(Self.rotationStamp()).log")
+
+        do {
+            try? self.fileHandle?.close()
+            self.fileHandle = nil
+            if fm.fileExists(atPath: backup.path) { try fm.removeItem(at: backup) }
+            try fm.moveItem(at: url, to: backup)
+            self.prepareStorage()
+        } catch {
+            self.log.error("InsightCenter.rotateLog() failed: \(error.localizedDescription)")
+            self.prepareStorage()
         }
     }
     
